@@ -367,7 +367,6 @@ public class Game_Manager : NetworkBehaviour
         
         Network_Game_Timer.Value = 0f;
         Network_Water_Level.Value = Initial_Water_Level;
-        Reset_Player_Stats();
         Reset_Player_Dikes();
         
         Change_Game_State(Game_State_Type.In_Game);
