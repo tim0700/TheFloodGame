@@ -58,19 +58,19 @@ public class Game_Manager : NetworkBehaviour
     /// <summary>
     /// 제방의 각 층(Layer)에 대한 데이터를 저장하는 구조체
     /// 네트워크를 통해 전송 가능하며, NetworkList에서 사용하기 위해 IEquatable 구현
-    /// 돌(100), 철(200), 강철(400) 체력
+    /// 아이템 시스템과 연동: 돌(100), 철(200), 강철(400) 체력
     /// </summary>
     [System.Serializable]
     public struct Dike_Layer_Data : INetworkSerializable, System.IEquatable<Dike_Layer_Data>
     {
         public float Current_Health;  // 현재 체력 (공격받으면 감소)
         public float Max_Health;      // 최대 체력 (건설 시 설정됨)
-        public int Material_Type;     // 0: 돌, 1: 철, 2: 강철
+        public int Material_Type;     // 0: 돌, 1: 철, 2: 강철 (Item_IDs.Stone/Iron/Steel_Dike_Kit과 연동)
         
         /// <summary>
         /// 새로운 제방 층 생성자
         /// </summary>
-        /// <param name="max_health">최대 체력 (재료에 따라 결정)</param>
+        /// <param name="max_health">최대 체력 (아이템 시스템에서 결정)</param>
         /// <param name="material_type">재료 종류 (0: 돌, 1: 철, 2: 강철)</param>
         public Dike_Layer_Data(float max_health, int material_type)
         {
@@ -120,17 +120,6 @@ public class Game_Manager : NetworkBehaviour
         {
             return !(left == right);
         }
-    }
-    
-    /// <summary>
-    /// 제방 재료 종류 열거형 (Excel 파일 기반)
-    /// 각 재료별로 체력과 필요 자원이 다름
-    /// </summary>
-    public enum Dike_Material_Type
-    {
-        Stone = 0,     // 돌 제방 - 체력 100, 재료: 석재 + 나무
-        Iron = 1,      // 철 제방 - 체력 200, 재료: 철 + 석재  
-        Steel = 2      // 강철 제방 - 체력 400, 재료: 강철 + 석재 + 나무
     }
     #endregion
 
@@ -212,12 +201,6 @@ public class Game_Manager : NetworkBehaviour
     [SerializeField] private float Single_Dike_Layer_Height = 1f;        // 제방 1층당 높이 (미터)
     [SerializeField] private float Victory_Condition_Check_Interval = 0.5f;  // 승리 조건 체크 주기 (초)
     
-    [Header("=== Dike Material Settings ===")]
-    /// <summary>
-    /// Excel 파일 기반 제방 재료별 체력 설정
-    /// 인덱스 0: 돌(100), 1: 철(200), 2: 강철(400)
-    /// </summary>
-    [SerializeField] private float[] Dike_Material_Health = { 100f, 200f, 400f };
     #endregion
 
     #region Events
@@ -465,6 +448,24 @@ public class Game_Manager : NetworkBehaviour
     #endregion
 
     #region Dike Management
+    
+    /// <summary>
+    /// 제방 재료 타입에 따른 체력값 반환 (아이템 시스템 연동)
+    /// 하드코딩된 배열 대신 아이템 시스템과 일치하는 값 사용
+    /// </summary>
+    /// <param name="material_type">재료 타입 (0: 돌, 1: 철, 2: 강철)</param>
+    /// <returns>해당 재료의 최대 체력</returns>
+    private float Get_Dike_Health_By_Material_Type(int material_type)
+    {
+        return material_type switch
+        {
+            0 => 100f,  // Stone Dike (Item_IDs.Stone_Dike_Kit)
+            1 => 200f,  // Iron Dike (Item_IDs.Iron_Dike_Kit)
+            2 => 400f,  // Steel Dike (Item_IDs.Steel_Dike_Kit)
+            _ => 0f     // 유효하지 않은 타입
+        };
+    }
+    
     private void Reset_Player_Dikes()
     {
         if (!IsServer) return;
@@ -474,11 +475,11 @@ public class Game_Manager : NetworkBehaviour
         Player_2_Dike_Layers.Clear();
         
         // 초기 제방 설정 (돌 제방 1층)
-        var initial_dike = new Dike_Layer_Data(Dike_Material_Health[0], 0);
+        var initial_dike = new Dike_Layer_Data(Get_Dike_Health_By_Material_Type(0), 0);
         Player_1_Dike_Layers.Add(initial_dike);
         Player_2_Dike_Layers.Add(initial_dike);
         
-        Debug.Log("[Game_Manager] Player dikes reset");
+        Debug.Log("[Game_Manager] Player dikes reset with Stone dikes (Health: 100)");
     }
 
     /// <summary>
@@ -587,27 +588,42 @@ public class Game_Manager : NetworkBehaviour
     }
 
     /// <summary>
-    /// 클라이언트에서 서버로 제방 건설 요청을 보내는 RPC 함수
+    /// 클라이언트에서 서버로 제방 건설 요청을 보내는 RPC 함수 (기존 버전)
     /// 서버에서 유효성 검증 후 새로운 제방 층을 추가
+    /// 하위 호환성을 위해 유지, 새로운 코드는 Build_Dike_With_Kit_ServerRpc 사용 권장
     /// </summary>
     /// <param name="player_id">건설하는 플레이어 ID</param>
     /// <param name="material_type">제방 재료 종류 (0: 돌, 1: 철, 2: 강철)</param>
     [ServerRpc(RequireOwnership = false)]  // 클라이언트 소유권 없이도 호출 가능
     public void Add_Dike_Layer_ServerRpc(int player_id, int material_type)
     {
-        // 유효하지 않은 재료 타입 체크
-        if (material_type < 0 || material_type >= Dike_Material_Health.Length) return;
+        // 유효한 재료 타입인지 체크 (0, 1, 2만 허용)
+        if (material_type < 0 || material_type > 2) 
+        {
+            Debug.LogWarning($"[Game_Manager] Invalid material type: {material_type} from player {player_id}");
+            return;
+        }
         
         // 해당 플레이어의 제방 리스트 선택
         var dike_layers = (player_id == 1) ? Player_1_Dike_Layers : Player_2_Dike_Layers;
         
-        // 새로운 제방 층 생성 (재료에 따른 최대 체력 설정)
-        var new_layer = new Dike_Layer_Data(Dike_Material_Health[material_type], material_type);
+        // 아이템 시스템과 연동된 체력 값 사용
+        float health = Get_Dike_Health_By_Material_Type(material_type);
+        var new_layer = new Dike_Layer_Data(health, material_type);
         
         // 제방 리스트 맨 위에 추가 (가장 높은 층이 됨)
         dike_layers.Add(new_layer);
         
-        Debug.Log($"[Game_Manager] Player {player_id} added {(Dike_Material_Type)material_type} dike layer. Health: {Dike_Material_Health[material_type]}");
+        // 개선된 로깅 (재료 이름과 체력 표시)
+        string material_name = material_type switch
+        {
+            0 => "Stone",
+            1 => "Iron", 
+            2 => "Steel",
+            _ => "Unknown"
+        };
+        
+        Debug.Log($"[Game_Manager] Player {player_id} added {material_name} dike layer. Health: {health}");
     }
 
     /// <summary>
@@ -706,6 +722,85 @@ public class Game_Manager : NetworkBehaviour
     {
         float player_dike_height = Calculate_Total_Dike_Height(player_id);
         return Network_Water_Level.Value > player_dike_height;
+    }
+    #endregion
+
+    #region Item System Integration
+    /// <summary>
+    /// 제방 키트 아이템 ID를 제방 재료 타입으로 변환
+    /// 아이템 시스템과 기존 제방 시스템을 연결하는 브리지 함수
+    /// </summary>
+    /// <param name="kit_item_id">제방 키트 아이템 ID</param>
+    /// <returns>제방 재료 타입 (0: 돌, 1: 철, 2: 강철) 또는 -1 (유효하지 않음)</returns>
+    public static int Get_Dike_Material_Type_From_Kit(int kit_item_id)
+    {
+        return kit_item_id switch
+        {
+            Item_IDs.Stone_Dike_Kit => 0,  // Stone (돌 제방)
+            Item_IDs.Iron_Dike_Kit => 1,   // Iron (철 제방)
+            Item_IDs.Steel_Dike_Kit => 2,  // Steel (강철 제방)
+            _ => -1  // 유효하지 않은 키트
+        };
+    }
+
+    /// <summary>
+    /// 유효한 제방 키트 아이템인지 확인
+    /// 인벤토리에서 제방 건설 가능 여부 판단에 사용
+    /// </summary>
+    /// <param name="item_id">확인할 아이템 ID</param>
+    /// <returns>제방 키트면 true, 아니면 false</returns>
+    public static bool Is_Valid_Dike_Kit(int item_id)
+    {
+        return item_id == Item_IDs.Stone_Dike_Kit ||
+               item_id == Item_IDs.Iron_Dike_Kit ||
+               item_id == Item_IDs.Steel_Dike_Kit;
+    }
+
+    /// <summary>
+    /// 제방 키트 아이템 ID로부터 체력 값 가져오기
+    /// 제방 건설 시 최대 체력 설정에 사용
+    /// </summary>
+    /// <param name="kit_item_id">제방 키트 아이템 ID</param>
+    /// <returns>해당 제방의 최대 체력 (유효하지 않으면 0)</returns>
+    public float Get_Dike_Health_From_Kit(int kit_item_id)
+    {
+        int material_type = Get_Dike_Material_Type_From_Kit(kit_item_id);
+        return Get_Dike_Health_By_Material_Type(material_type);
+    }
+
+    /// <summary>
+    /// 아이템 키트 기반 제방 건설 RPC (새로운 주요 인터페이스)
+    /// 협업자가 인벤토리에서 제방 키트를 사용할 때 호출
+    /// 인벤토리에서 키트 소모는 클라이언트에서 미리 처리된 상태로 가정
+    /// </summary>
+    /// <param name="player_id">건설하는 플레이어 ID (1 또는 2)</param>
+    /// <param name="kit_item_id">사용하는 제방 키트 아이템 ID</param>
+    [ServerRpc(RequireOwnership = false)]
+    public void Build_Dike_With_Kit_ServerRpc(int player_id, int kit_item_id)
+    {
+        // 유효한 제방 키트인지 확인
+        if (!Is_Valid_Dike_Kit(kit_item_id))
+        {
+            Debug.LogWarning($"[Game_Manager] Invalid dike kit item ID: {kit_item_id} from player {player_id}");
+            return;
+        }
+        
+        // 제방 키트를 재료 타입으로 변환
+        int material_type = Get_Dike_Material_Type_From_Kit(kit_item_id);
+        
+        // 기존 제방 건설 로직 재사용
+        Add_Dike_Layer_ServerRpc(player_id, material_type);
+        
+        // 아이템 기반 건설 완료 로그
+        string kit_name = kit_item_id switch
+        {
+            Item_IDs.Stone_Dike_Kit => "Stone Dike Kit",
+            Item_IDs.Iron_Dike_Kit => "Iron Dike Kit", 
+            Item_IDs.Steel_Dike_Kit => "Steel Dike Kit",
+            _ => "Unknown Kit"
+        };
+        
+        Debug.Log($"[Game_Manager] Player {player_id} built dike using {kit_name} (Item ID: {kit_item_id})");
     }
     #endregion
 }
