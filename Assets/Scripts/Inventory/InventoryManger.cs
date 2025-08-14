@@ -5,7 +5,7 @@ using UnityEngine;
 public class InventoryManger : MonoBehaviour
 {
     public GameObject InventoryMenu;
-    private bool MenuActivated;     //¸Þ´ºÄÑÁ®ÀÖ´ÂÁö ²¨Á®ÀÖ´ÂÁö ÃßÀûÇÏ´Â ÇÔ¼ö
+    private bool MenuActivated;     //ï¿½Þ´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö´ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ö´ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½Ô¼ï¿½
 
     void Start()
     {
@@ -15,15 +15,20 @@ public class InventoryManger : MonoBehaviour
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.E) && MenuActivated) {
-            Debug.Log("e ´­·¶À½");
+            Debug.Log("e ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½");
             InventoryMenu.SetActive(false);
             MenuActivated = false;
         }
         else if (Input.GetKeyDown(KeyCode.E) && !MenuActivated)
         {
-            Debug.Log("e ´­·¶À½");
+            Debug.Log("e ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½");
             InventoryMenu.SetActive(true);
             MenuActivated = true;
         }
+    }
+
+    public void AddItem(string itemName, int quantity, Sprite itemSprite)
+    {
+        Debug.Log("ItemName = " + itemName +"Quantity = " + quantity + "ItemSprite = " + itemSprite);
     }
 }
