@@ -5,7 +5,7 @@ using UnityEngine;
 public class InventoryManger : MonoBehaviour
 {
     public GameObject InventoryMenu;
-    private bool MenuActivated;     //�޴������ִ��� �����ִ��� �����ϴ� �Լ�
+    private bool MenuActivated;     //메뉴가 열려있는지 닫혀있는지 확인하는것
 
     void Start()
     {
@@ -15,13 +15,13 @@ public class InventoryManger : MonoBehaviour
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.E) && MenuActivated) {
-            Debug.Log("e ������");
+            Debug.Log("e 눌림");
             InventoryMenu.SetActive(false);
             MenuActivated = false;
         }
         else if (Input.GetKeyDown(KeyCode.E) && !MenuActivated)
         {
-            Debug.Log("e ������");
+            Debug.Log("e 눌림");
             InventoryMenu.SetActive(true);
             MenuActivated = true;
         }
