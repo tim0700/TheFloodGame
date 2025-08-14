@@ -15,16 +15,17 @@ public class Item : MonoBehaviour {
 
 
     void Start(){
-
+       
         inventoryManger = GameObject.Find("InventoryCanvas").GetComponent<InventoryManger>();
     }
 
     private void OnCollisionEnter(Collision collision) {
+
         if(collision.gameObject.tag == "Player")
         {
+            Debug.Log("플레이와 아이템 충돌!");
             inventoryManger.AddItem(ItemName, quantity, sprite);
             Destroy(gameObject);
-
         }
     }
 
