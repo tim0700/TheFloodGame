@@ -19,12 +19,16 @@ public class InventoryManger : MonoBehaviour
             Debug.Log("e 눌림");
             InventoryMenu.SetActive(false);
             MenuActivated = false;
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
         }
         else if (Input.GetKeyDown(KeyCode.E) && !MenuActivated)
         {
             Debug.Log("e 눌림");
             InventoryMenu.SetActive(true);
             MenuActivated = true;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
     }
 
@@ -38,6 +42,15 @@ public class InventoryManger : MonoBehaviour
                 ItemSlot[i].AddItem(ItemName, Quantity, ItemSprite);
                 return;
             }
+        }
+    }
+
+    public void DeselectAllSlot()
+    {
+        for (int i = 0; i < ItemSlot.Length; i++)
+        {
+            ItemSlot[i].SelectedShader.SetActive(false);
+            ItemSlot[i].ThisItemSelected = false;
         }
     }
 }
