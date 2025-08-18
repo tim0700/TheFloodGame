@@ -12,12 +12,12 @@ GameObject:
   - component: {fileID: 631060070400148635}
   - component: {fileID: 6232243306039333505}
   m_Layer: 5
-  m_Name: Quantity Text
+  m_Name: QuantityText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &4494892709567708692
 RectTransform:
   m_ObjectHideFlags: 0
@@ -168,8 +168,8 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6448125974564241301}
-  - {fileID: 7763238984521373370}
   - {fileID: 4494892709567708692}
+  - {fileID: 7763238984521373370}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -231,8 +231,8 @@ MonoBehaviour:
   Quantity: 0
   ItemSprite: {fileID: 0}
   IsFull: 0
-  QuantityText: {fileID: 0}
-  ItemImage: {fileID: 0}
+  QuantityText: {fileID: 6232243306039333505}
+  ItemImage: {fileID: 7886835148784814170}
 --- !u!1 &1494406375156651552
 GameObject:
   m_ObjectHideFlags: 0
@@ -250,7 +250,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &6448125974564241301
 RectTransform:
   m_ObjectHideFlags: 0
