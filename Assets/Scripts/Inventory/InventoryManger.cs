@@ -32,14 +32,14 @@ public class InventoryManger : MonoBehaviour
         }
     }
 
-    public void AddItem(string ItemName, int Quantity, Sprite ItemSprite)
+    public void AddItem(string ItemName, int Quantity, Sprite ItemSprite, string ItemDescription)
     {
         Debug.Log("InventoryManager Add Item 발동");
         for (int i = 0; i < ItemSlot.Length; i++)
         {
             if (ItemSlot[i].IsFull == false)
             {
-                ItemSlot[i].AddItem(ItemName, Quantity, ItemSprite);
+                ItemSlot[i].AddItem(ItemName, Quantity, ItemSprite, ItemDescription);
                 return;
             }
         }

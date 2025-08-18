@@ -11,6 +11,11 @@ public class Item : MonoBehaviour {
 
     [SerializeField]
     private Sprite sprite;
+
+    [TextArea]
+    [SerializeField]
+    private string ItemDescription;
+
     private InventoryManger inventoryManger;
 
 
@@ -24,7 +29,7 @@ public class Item : MonoBehaviour {
         if(collision.gameObject.tag == "Player")
         {
             Debug.Log("플레이와 아이템 충돌!");
-            inventoryManger.AddItem(ItemName, quantity, sprite);
+            inventoryManger.AddItem(ItemName, quantity, sprite, ItemDescription);
             Destroy(gameObject);
         }
     }
