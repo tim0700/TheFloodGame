@@ -1,3 +1,4 @@
+//InventoryManger.cs
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -37,16 +38,31 @@ public class InventoryManger : MonoBehaviour
         Debug.Log("InventoryManager Add Item 발동");
         for (int i = 0; i < ItemSlot.Length; i++)
         {
-            if (ItemSlot[i].IsFull == false && ItemSlot[i].name == ItemName || ItemSlot[i].Quantity == 0)
+            // 같은 아이템이면서 꽉 차지 않은 경우 → 같은 슬롯에 추가
+            if (ItemSlot[i].ItemName == ItemName && !ItemSlot[i].IsFull)
             {
                 int LeftOverItem = ItemSlot[i].AddItem(ItemName, Quantity, ItemSprite, ItemDescription);
-                if(LeftOverItem > 0)
-                    LeftOverItem = AddItem(ItemName, LeftOverItem, ItemSprite, ItemDescription);
+                if (LeftOverItem > 0)
+                    return AddItem(ItemName, LeftOverItem, ItemSprite, ItemDescription);
 
-                return LeftOverItem;
+                return 0;
             }
         }
-        return Quantity;
+
+        for (int i = 0; i < ItemSlot.Length; i++)
+        {
+            // 비어있는 슬롯에 추가
+            if (ItemSlot[i].Quantity == 0)
+            {
+                int LeftOverItem = ItemSlot[i].AddItem(ItemName, Quantity, ItemSprite, ItemDescription);
+                if (LeftOverItem > 0)
+                    return AddItem(ItemName, LeftOverItem, ItemSprite, ItemDescription);
+
+                return 0;
+            }
+        }
+
+        return Quantity; // 다 못담았을 때
     }
 
     public void DeselectAllSlot()
