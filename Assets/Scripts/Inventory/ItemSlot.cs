@@ -45,23 +45,25 @@ public class ItemSlot : MonoBehaviour, IPointerClickHandler
     public int AddItem(string ItemName, int Quantity, Sprite ItemSprite, string ItemDescription)
     {
         if(IsFull)
-            return quantity;
+            return Quantity;
         
         this.ItemName = ItemName;
 
-        this.Quantity += Quantity;
-        this.Quantity >= MaxNumberOfItems;
-
         this.ItemSprite = ItemSprite;
-        if(this.ItemDescription = ItemDescription)
+        ItemImage.sprite = ItemSprite;
+
+        this.ItemDescription = ItemDescription;
+
+        this.Quantity += Quantity;
+        if (this.Quantity >= MaxNumberOfItems)
         {
             QuantityText.text = MaxNumberOfItems.ToString();
             QuantityText.enabled = true;
             IsFull = true;
         
             //Return the LeftOvers
-            int extraItems = this.quantity = MaxNumberOfItems;
-            this.quantity = MaxNumberOfItems;
+            int extraItems = this.Quantity - MaxNumberOfItems;
+            this.Quantity = MaxNumberOfItems;
             return extraItems;
         }
 

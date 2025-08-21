@@ -30,7 +30,7 @@ public class Item : MonoBehaviour {
         {
             Debug.Log("item collison!");
             int LeftOverItems = inventoryManger.AddItem(ItemName, quantity, sprite, ItemDescription);
-            if(LeftOverItem <= 0)
+            if(LeftOverItems <= 0)
                 Destroy(gameObject);
             else
                 quantity = LeftOverItems;
