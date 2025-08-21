@@ -28,9 +28,13 @@ public class Item : MonoBehaviour {
 
         if(collision.gameObject.tag == "Player")
         {
-            Debug.Log("플레이와 아이템 충돌!");
-            inventoryManger.AddItem(ItemName, quantity, sprite, ItemDescription);
-            Destroy(gameObject);
+            Debug.Log("item collison!");
+            int LeftOverItems = inventoryManger.AddItem(ItemName, quantity, sprite, ItemDescription);
+            if(LeftOverItem <= 0)
+                Destroy(gameObject);
+            else
+                quantity = LeftOverItems;
+                
         }
     }
 
