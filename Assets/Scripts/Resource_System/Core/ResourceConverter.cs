@@ -5,64 +5,56 @@ using ResourceSystem;
 /// ResourceSystem과 기존 시스템(InventoryManager, Item_IDs) 간의 변환을 담당하는 유틸리티
 /// 
 /// Input: ResourceType, ToolType 등 자원 시스템 열거형
-/// Output: InventoryItem, Item_IDs 등 기존 시스템 객체
+/// Output: string (item names), Item_IDs 등 기존 시스템 데이터
 /// Type: Static Utility Class
 /// </summary>
 public static class ResourceConverter
 {
-    #region ResourceType ↔ InventoryItem 변환
+    #region ResourceType ↔ Item Name 변환
 
     /// <summary>
-    /// ResourceType을 협업자의 InventoryItem으로 변환
-    /// 안전한 ItemDatabase 접근 및 에러 처리 포함
+    /// ResourceType을 협업자의 InventoryManager.AddItem()에서 사용할 아이템 이름으로 변환
+    /// 협업자 시스템의 string 기반 인벤토리와 호환
     /// </summary>
     /// <param name="resourceType">변환할 자원 타입</param>
-    /// <returns>해당하는 InventoryItem, 실패 시 null</returns>
-    public static InventoryItem Convert_To_Inventory_Item(ResourceType resourceType)
+    /// <returns>해당하는 아이템 이름, 실패 시 빈 문자열</returns>
+    public static string Convert_To_Item_Name(ResourceType resourceType)
     {
-        string itemName = Get_Inventory_Item_Name(resourceType);
-        
+        string itemName = resourceType switch
+        {
+            ResourceType.Wood => "Wood",         // 협업자 인벤토리 시스템의 아이템명
+            ResourceType.Stone => "Stone",       // 협업자 인벤토리 시스템의 아이템명
+            ResourceType.IronOre => "Iron Ore",  // 협업자 인벤토리 시스템의 아이템명
+            ResourceType.Coal => "Coal",         // 협업자 인벤토리 시스템의 아이템명
+            _ => ""
+        };
+
         if (string.IsNullOrEmpty(itemName))
         {
             Debug.LogError($"[ResourceConverter] 알 수 없는 ResourceType: {resourceType}");
-            return null;
-        }
-
-        // ItemDatabase 안전한 접근
-        if (ItemDatabase.Instance == null)
-        {
-            Debug.LogError("[ResourceConverter] ItemDatabase.Instance가 null입니다. ItemDatabase가 초기화되었는지 확인하세요.");
-            return null;
-        }
-
-        InventoryItem item = ItemDatabase.Instance.GetByName(itemName);
-        
-        if (item == null)
-        {
-            Debug.LogError($"[ResourceConverter] ItemDatabase에서 '{itemName}' 아이템을 찾을 수 없습니다.");
-            Debug.LogWarning($"[ResourceConverter] 사용 가능한 아이템들: {Get_Available_Items_Debug_String()}");
         }
         else
         {
             Debug.Log($"[ResourceConverter] 변환 성공: {resourceType} → {itemName}");
         }
 
-        return item;
+        return itemName;
     }
 
     /// <summary>
-    /// ResourceType에 해당하는 InventoryItem의 이름 반환
-    /// 협업자 시스템의 아이템명과 정확히 일치해야 함
+    /// 아이템 이름을 ResourceType으로 역변환
     /// </summary>
-    private static string Get_Inventory_Item_Name(ResourceType resourceType)
+    /// <param name="itemName">변환할 아이템 이름</param>
+    /// <returns>해당하는 ResourceType, 실패 시 기본값</returns>
+    public static ResourceType Convert_From_Item_Name(string itemName)
     {
-        return resourceType switch
+        return itemName switch
         {
-            ResourceType.Wood => "Wood",         // 협업자 ItemDatabase의 정확한 이름
-            ResourceType.Stone => "Stone",       // 협업자 ItemDatabase의 정확한 이름
-            ResourceType.IronOre => "Iron Ore",  // 협업자 ItemDatabase의 정확한 이름
-            ResourceType.Coal => "Coal",         // 협업자 ItemDatabase의 정확한 이름
-            _ => ""
+            "Wood" => ResourceType.Wood,
+            "Stone" => ResourceType.Stone,
+            "Iron Ore" => ResourceType.IronOre,
+            "Coal" => ResourceType.Coal,
+            _ => ResourceType.Stone  // 기본값
         };
     }
 
@@ -201,37 +193,7 @@ public static class ResourceConverter
     #region 디버그 및 검증 함수
 
     /// <summary>
-    /// ItemDatabase에 있는 모든 아이템 목록을 디버그 문자열로 반환
-    /// 아이템명 매핑 오류 시 참고용
-    /// </summary>
-    /// <returns>사용 가능한 아이템 목록 문자열</returns>
-    private static string Get_Available_Items_Debug_String()
-    {
-        if (ItemDatabase.Instance == null || ItemDatabase.Instance.items == null)
-        {
-            return "ItemDatabase가 초기화되지 않음";
-        }
-
-        var items = ItemDatabase.Instance.items;
-        if (items.Count == 0)
-        {
-            return "ItemDatabase가 비어있음";
-        }
-
-        string itemList = "";
-        for (int i = 0; i < items.Count && i < 10; i++)  // 최대 10개만 표시
-        {
-            if (items[i] != null)
-            {
-                itemList += $"'{items[i].itemName}', ";
-            }
-        }
-
-        return itemList.TrimEnd(',', ' ');
-    }
-
-    /// <summary>
-    /// 자원 변환 시스템의 정상 동작 여부 검증
+    /// 자원 변환 시스템의 정상 동작 여부 검증 (간소화된 버전)
     /// 게임 시작 시 호출하여 시스템 무결성 확인
     /// </summary>
     /// <returns>모든 변환이 정상 동작하면 true</returns>
@@ -241,21 +203,14 @@ public static class ResourceConverter
 
         bool allValid = true;
 
-        // ItemDatabase 존재 확인
-        if (ItemDatabase.Instance == null)
-        {
-            Debug.LogError("[ResourceConverter] ItemDatabase.Instance가 null입니다!");
-            allValid = false;
-        }
-
         // 각 ResourceType별 변환 테스트
         foreach (ResourceType resourceType in System.Enum.GetValues(typeof(ResourceType)))
         {
-            // InventoryItem 변환 테스트
-            InventoryItem inventoryItem = Convert_To_Inventory_Item(resourceType);
-            if (inventoryItem == null)
+            // Item Name 변환 테스트
+            string itemName = Convert_To_Item_Name(resourceType);
+            if (string.IsNullOrEmpty(itemName))
             {
-                Debug.LogError($"[ResourceConverter] {resourceType} → InventoryItem 변환 실패");
+                Debug.LogError($"[ResourceConverter] {resourceType} → Item Name 변환 실패");
                 allValid = false;
             }
 
@@ -301,21 +256,6 @@ public static class ResourceConverter
         }
 
         return allValid;
-    }
-
-    #endregion
-
-    #region 디버그 전용 공개 메서드
-
-    /// <summary>
-    /// ResourceType에 해당하는 InventoryItem 이름 반환 (디버그용)
-    /// 테스트 스크립트에서 사용
-    /// </summary>
-    /// <param name="resourceType">확인할 자원 타입</param>
-    /// <returns>ItemDatabase에서 찾을 아이템 이름</returns>
-    public static string Get_Inventory_Item_Name_Debug(ResourceType resourceType)
-    {
-        return Get_Inventory_Item_Name(resourceType);
     }
 
     #endregion

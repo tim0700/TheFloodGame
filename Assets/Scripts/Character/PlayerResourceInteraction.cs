@@ -22,7 +22,7 @@ public class PlayerResourceInteraction : MonoBehaviour
     [Range(1f, 10f)]
     public float interactionRange = 3f;
     
-    [Tooltip("E키 입력 감지 여부")]
+    [Tooltip("F키 입력 감지 여부")]
     public bool enableKeyInput = true;
     
     [Tooltip("상호작용 레이어 마스크 (ResourceNode가 있는 레이어)")]
@@ -285,12 +285,12 @@ public class PlayerResourceInteraction : MonoBehaviour
     #region 입력 처리
 
     /// <summary>
-    /// 키 입력 처리 (E키 감지)
+    /// 키 입력 처리 (F키 감지)
     /// </summary>
     private void Handle_Input()
     {
-        // E키 입력 감지 (Unity New Input System 호환)
-        bool eKeyPressed = Input.GetKeyDown(KeyCode.E);
+        // F키 입력 감지 (Unity New Input System 호환)
+        bool eKeyPressed = Input.GetKeyDown(KeyCode.F);
         
         if (eKeyPressed)
         {

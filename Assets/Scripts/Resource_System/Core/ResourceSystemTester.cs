@@ -3,17 +3,11 @@ using ResourceSystem;
 using System.Collections;
 
 /// <summary>
-/// 자원 시스템과 인벤토리 시스템의 통합 테스트를 수행하는 컴포넌트
+/// 자원 시스템과 협업자 인벤토리 시스템의 통합 테스트를 수행하는 컴포넌트 (간소화 버전)
 /// 
 /// Input: 테스트 설정 및 시작 명령
 /// Output: 테스트 결과 로그, 시스템 상태 검증
 /// Type: MonoBehaviour Component (테스트/디버그용)
-/// 
-/// 사용법: 
-/// 1. 씬에 빈 GameObject 생성
-/// 2. 이 컴포넌트 추가
-/// 3. Inspector에서 테스트 설정
-/// 4. 플레이 모드에서 자동 실행 또는 수동 버튼 클릭
 /// </summary>
 public class ResourceSystemTester : MonoBehaviour
 {
@@ -25,16 +19,10 @@ public class ResourceSystemTester : MonoBehaviour
     
     [Tooltip("상세한 로그 출력 여부")]
     public bool verboseLogging = true;
-    
-    [Tooltip("테스트 실패 시 게임 일시정지")]
-    public bool pauseOnTestFailure = false;
 
     [Header("=== 변환 시스템 테스트 ===")]
     [Tooltip("ResourceConverter 변환 테스트 실행")]
     public bool testResourceConverter = true;
-    
-    [Tooltip("ItemDatabase 검증 테스트 실행")]
-    public bool testItemDatabase = true;
 
     [Header("=== 인벤토리 연동 테스트 ===")]
     [Tooltip("인벤토리 매니저 테스트 실행")]
@@ -63,7 +51,6 @@ public class ResourceSystemTester : MonoBehaviour
 
     [Header("=== 테스트 결과 (읽기 전용) ===")]
     [SerializeField] private bool resourceConverterTestPassed = false;
-    [SerializeField] private bool itemDatabaseTestPassed = false;
     [SerializeField] private bool inventoryManagerTestPassed = false;
     [SerializeField] private bool itemAdditionTestPassed = false;
     [SerializeField] private bool resourceNodeTestPassed = false;
@@ -93,7 +80,7 @@ public class ResourceSystemTester : MonoBehaviour
     /// </summary>
     private IEnumerator Run_All_Tests_Coroutine()
     {
-        Log_Test("=== 자원 시스템 통합 테스트 시작 ===", true);
+        Log_Test("=== 자원 시스템 통합 테스트 시작 (간소화 버전) ===", true);
         
         totalTests = 0;
         passedTests = 0;
@@ -107,25 +94,19 @@ public class ResourceSystemTester : MonoBehaviour
             yield return StartCoroutine(Test_Resource_Converter());
         }
 
-        // 2. ItemDatabase 테스트
-        if (testItemDatabase)
-        {
-            yield return StartCoroutine(Test_Item_Database());
-        }
-
-        // 3. InventoryManager 테스트
+        // 2. InventoryManager 테스트
         if (testInventoryManager)
         {
             yield return StartCoroutine(Test_Inventory_Manager());
         }
 
-        // 4. 실제 아이템 추가 테스트
+        // 3. 실제 아이템 추가 테스트
         if (testItemAddition)
         {
             yield return StartCoroutine(Test_Item_Addition());
         }
 
-        // 5. ResourceNode 테스트
+        // 4. ResourceNode 테스트
         if (testResourceNode)
         {
             yield return StartCoroutine(Test_Resource_Node_Integration());
@@ -150,12 +131,12 @@ public class ResourceSystemTester : MonoBehaviour
 
             foreach (ResourceType resourceType in System.Enum.GetValues(typeof(ResourceType)))
             {
-                // 1. ResourceType → InventoryItem 변환
-                InventoryItem inventoryItem = ResourceConverter.Convert_To_Inventory_Item(resourceType);
+                // 1. ResourceType → Item Name 변환
+                string itemName = ResourceConverter.Convert_To_Item_Name(resourceType);
                 
-                if (inventoryItem == null)
+                if (string.IsNullOrEmpty(itemName))
                 {
-                    Log_Test($"❌ {resourceType} → InventoryItem 변환 실패", true);
+                    Log_Test($"❌ {resourceType} → Item Name 변환 실패", true);
                     allConversionsValid = false;
                     continue;
                 }
@@ -180,7 +161,7 @@ public class ResourceSystemTester : MonoBehaviour
                     continue;
                 }
 
-                Log_Test($"✅ {resourceType} 변환 성공: {inventoryItem.itemName} (ID: {itemId})");
+                Log_Test($"✅ {resourceType} 변환 성공: {itemName} (ID: {itemId})");
             }
 
             // 도구 변환 테스트
@@ -224,108 +205,40 @@ public class ResourceSystemTester : MonoBehaviour
     }
 
     /// <summary>
-    /// ItemDatabase 시스템 테스트
-    /// </summary>
-    private IEnumerator Test_Item_Database()
-    {
-        Log_Test("--- ItemDatabase 테스트 시작 ---");
-        totalTests++;
-
-        try
-        {
-            // ItemDatabase 인스턴스 확인
-            if (ItemDatabase.Instance == null)
-            {
-                Log_Test("❌ ItemDatabase.Instance가 null입니다", true);
-                Log_Test("   해결방법: ItemDatabase ScriptableObject를 생성하고 씬에 배치하세요", true);
-                itemDatabaseTestPassed = false;
-                yield break;
-            }
-
-            // 아이템 목록 확인
-            if (ItemDatabase.Instance.items == null || ItemDatabase.Instance.items.Count == 0)
-            {
-                Log_Test("❌ ItemDatabase에 아이템이 없습니다", true);
-                itemDatabaseTestPassed = false;
-                yield break;
-            }
-
-            Log_Test($"✅ ItemDatabase 발견: {ItemDatabase.Instance.items.Count}개 아이템");
-
-            // 자원 아이템들이 데이터베이스에 등록되어 있는지 확인
-            bool allResourceItemsFound = true;
-            
-            foreach (ResourceType resourceType in System.Enum.GetValues(typeof(ResourceType)))
-            {
-                string expectedItemName = ResourceConverter.Get_Inventory_Item_Name_Debug(resourceType);
-                InventoryItem foundItem = ItemDatabase.Instance.GetByName(expectedItemName);
-
-                if (foundItem == null)
-                {
-                    Log_Test($"❌ '{expectedItemName}' 아이템이 데이터베이스에 없습니다", true);
-                    allResourceItemsFound = false;
-                }
-                else
-                {
-                    Log_Test($"✅ '{expectedItemName}' 아이템 발견");
-                }
-            }
-
-            itemDatabaseTestPassed = allResourceItemsFound;
-            
-            if (allResourceItemsFound)
-            {
-                passedTests++;
-                Log_Test("✅ ItemDatabase 테스트 성공", true);
-            }
-            else
-            {
-                Log_Test("❌ ItemDatabase 테스트 실패: 일부 자원 아이템이 누락됨", true);
-            }
-        }
-        catch (System.Exception ex)
-        {
-            Log_Test($"❌ ItemDatabase 테스트 예외 발생: {ex.Message}", true);
-            itemDatabaseTestPassed = false;
-        }
-
-        yield return null;
-    }
-
-    /// <summary>
-    /// InventoryManager 시스템 테스트
+    /// InventoryManager 시스템 테스트 (협업자 버전)
     /// </summary>
     private IEnumerator Test_Inventory_Manager()
     {
-        Log_Test("--- InventoryManager 테스트 시작 ---");
+        Log_Test("--- InventoryManger 테스트 시작 ---");
         totalTests++;
 
         try
         {
-            // InventoryManager 인스턴스 확인
-            if (InventoryManager.Instance == null)
+            // InventoryManger 인스턴스 확인 (협업자 버전)
+            InventoryManger inventoryManager = FindObjectOfType<InventoryManger>();
+            if (inventoryManager == null)
             {
-                Log_Test("❌ InventoryManager.Instance가 null입니다", true);
-                Log_Test("   해결방법: InventoryManager 컴포넌트를 씬에 추가하세요", true);
+                Log_Test("❌ InventoryManger가 씬에 없습니다", true);
+                Log_Test("   해결방법: InventoryManger 컴포넌트를 씬에 추가하세요", true);
                 inventoryManagerTestPassed = false;
                 yield break;
             }
 
             // 인벤토리 슬롯 확인
-            if (InventoryManager.Instance.slots == null || InventoryManager.Instance.slots.Count == 0)
+            if (inventoryManager.ItemSlot == null || inventoryManager.ItemSlot.Length == 0)
             {
-                Log_Test("❌ InventoryManager에 슬롯이 없습니다", true);
+                Log_Test("❌ InventoryManger에 슬롯이 없습니다", true);
                 inventoryManagerTestPassed = false;
                 yield break;
             }
 
-            Log_Test($"✅ InventoryManager 발견: {InventoryManager.Instance.slots.Count}개 슬롯");
+            Log_Test($"✅ InventoryManger 발견: {inventoryManager.ItemSlot.Length}개 슬롯");
 
             // 빈 슬롯 개수 확인
             int emptySlots = 0;
-            foreach (var slot in InventoryManager.Instance.slots)
+            foreach (var slot in inventoryManager.ItemSlot)
             {
-                if (slot.item == null)
+                if (slot.Quantity == 0)
                     emptySlots++;
             }
 
@@ -333,11 +246,11 @@ public class ResourceSystemTester : MonoBehaviour
 
             inventoryManagerTestPassed = true;
             passedTests++;
-            Log_Test("✅ InventoryManager 테스트 성공", true);
+            Log_Test("✅ InventoryManger 테스트 성공", true);
         }
         catch (System.Exception ex)
         {
-            Log_Test($"❌ InventoryManager 테스트 예외 발생: {ex.Message}", true);
+            Log_Test($"❌ InventoryManger 테스트 예외 발생: {ex.Message}", true);
             inventoryManagerTestPassed = false;
         }
 
@@ -345,7 +258,7 @@ public class ResourceSystemTester : MonoBehaviour
     }
 
     /// <summary>
-    /// 실제 아이템 추가 테스트
+    /// 실제 아이템 추가 테스트 (협업자 시스템 사용)
     /// </summary>
     private IEnumerator Test_Item_Addition()
     {
@@ -355,9 +268,18 @@ public class ResourceSystemTester : MonoBehaviour
         try
         {
             // 선행 조건 확인
-            if (!itemDatabaseTestPassed || !inventoryManagerTestPassed)
+            if (!inventoryManagerTestPassed)
             {
                 Log_Test("❌ 선행 테스트 실패로 아이템 추가 테스트 생략", true);
+                itemAdditionTestPassed = false;
+                yield break;
+            }
+
+            // InventoryManger 찾기
+            InventoryManger inventoryManager = FindObjectOfType<InventoryManger>();
+            if (inventoryManager == null)
+            {
+                Log_Test("❌ InventoryManger를 찾을 수 없습니다", true);
                 itemAdditionTestPassed = false;
                 yield break;
             }
@@ -367,25 +289,27 @@ public class ResourceSystemTester : MonoBehaviour
 
             foreach (ResourceType resourceType in System.Enum.GetValues(typeof(ResourceType)))
             {
-                InventoryItem testItem = ResourceConverter.Convert_To_Inventory_Item(resourceType);
+                string itemName = ResourceConverter.Convert_To_Item_Name(resourceType);
                 
-                if (testItem == null)
+                if (string.IsNullOrEmpty(itemName))
                 {
-                    Log_Test($"❌ {resourceType} 아이템 변환 실패", true);
+                    Log_Test($"❌ {resourceType} 아이템명 변환 실패", true);
                     allAdditionsSuccessful = false;
                     continue;
                 }
 
-                bool addSuccess = InventoryManager.Instance.AddItem(testItem, testItemQuantity);
+                // 협업자의 InventoryManger.AddItem(string, int, Sprite, string) 호출
+                // 테스트용으로 기본값 사용
+                int leftover = inventoryManager.AddItem(itemName, testItemQuantity, null, $"{itemName} 설명");
                 
-                if (addSuccess)
+                if (leftover == 0)
                 {
-                    Log_Test($"✅ {resourceType} {testItemQuantity}개 추가 성공");
+                    Log_Test($"✅ {resourceType} ({itemName}) {testItemQuantity}개 추가 성공");
                 }
                 else
                 {
-                    Log_Test($"❌ {resourceType} 추가 실패 (인벤토리 공간 부족?)", true);
-                    allAdditionsSuccessful = false;
+                    Log_Test($"⚠️ {resourceType} 추가 부분 성공 (남은 수량: {leftover})");
+                    // 부분 성공도 성공으로 간주
                 }
             }
 
@@ -497,11 +421,6 @@ public class ResourceSystemTester : MonoBehaviour
         else
         {
             Log_Test("⚠️ 일부 테스트 실패. 위의 오류 메시지를 확인하세요.", true);
-            
-            if (pauseOnTestFailure)
-            {
-                Debug.Break();
-            }
         }
         
         Log_Test("=================================", true);

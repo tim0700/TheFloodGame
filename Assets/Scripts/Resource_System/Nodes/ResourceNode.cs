@@ -721,35 +721,41 @@ public class ResourceNode : MonoBehaviour
     {
         try
         {
-            // ResourceConverter를 통해 InventoryItem으로 변환
-            InventoryItem inventoryItem = ResourceConverter.Convert_To_Inventory_Item(resourceType);
+            // ResourceConverter를 통해 아이템 이름으로 변환 (협업자 시스템 호환)
+            string itemName = ResourceConverter.Convert_To_Item_Name(resourceType);
 
-            if (inventoryItem == null)
+            if (string.IsNullOrEmpty(itemName))
             {
                 Debug.LogError($"[ResourceNode] {resourceType} 변환 실패");
                 return false;
             }
 
-            // InventoryManager 안전한 접근
-            if (InventoryManager.Instance == null)
+            // InventoryManger 찾기 (협업자 버전)
+            InventoryManger inventoryManager = FindObjectOfType<InventoryManger>();
+            if (inventoryManager == null)
             {
-                Debug.LogError("[ResourceNode] InventoryManager.Instance가 null입니다");
+                Debug.LogError("[ResourceNode] InventoryManger를 찾을 수 없습니다");
                 return false;
             }
 
-            // 인벤토리에 아이템 추가
-            bool success = InventoryManager.Instance.AddItem(inventoryItem, amount);
+            // 인벤토리에 아이템 추가 (협업자의 AddItem 시그니처 사용)
+            int leftover = inventoryManager.AddItem(itemName, amount, null, $"{itemName} - 채취한 자원");
 
-            if (success)
+            if (leftover == 0)
             {
-                Log_Debug($"인벤토리 추가 성공: {inventoryItem.itemName} x{amount}");
+                Log_Debug($"인벤토리 추가 성공: {itemName} x{amount}");
+                return true;
+            }
+            else if (leftover < amount)
+            {
+                Log_Debug($"인벤토리 부분 추가: {itemName} x{amount - leftover} (남은 수량: {leftover})");
+                return true; // 부분 성공도 성공으로 간주
             }
             else
             {
-                Log_Debug($"인벤토리 추가 실패: 공간 부족 또는 오류");
+                Log_Debug($"인벤토리 추가 실패: 공간 부족 (전체 수량 실패)");
+                return false;
             }
-
-            return success;
         }
         catch (System.Exception ex)
         {
